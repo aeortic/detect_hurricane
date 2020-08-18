@@ -18,6 +18,7 @@ def loadRSS():
 app = Chalice(app_name='detect_hurricane')
 
 
+
 def parseXML(xmlfile):
     # create element tree object
     tree = ET.parse(xmlfile)
@@ -37,23 +38,25 @@ def parseXML(xmlfile):
         # iterate child elements of item
         for child in item:
 
-            # special checking for namespace object content:media
-            if child.tag == '{http://search.yahoo.com/mrss/}content':
-                news['media'] = child.attrib['url']
-            else:
-                news[child.tag] = child.text.encode('utf8')
+            # special checking for namespace object nhc:Cyclone
+            if child.tag == '{http://www.nhc.noaa.gov}Cyclone':
+                for subItem in child.findall(".//"):
+                    key = subItem.tag[25:]
+                    news[key] = subItem.text
+        if len(news) > 0:
+            newsitems.append(news)
 
-                # append news dictionary to news items list
-        newsitems.append(news)
-
-        # return news items list
     return newsitems
 
 
 @app.route('/')
 def index():
     loadRSS()
-    return {'hello': 'world'}
+    newsitems = parseXML('topnewsfeed.xml')
+    print(newsitems)
+    if len(newsitems) > 0:
+        return newsitems[0]
+    return {'type': 'CLEAR'}
 
 
 # The view function above will return {"hello": "world"}
